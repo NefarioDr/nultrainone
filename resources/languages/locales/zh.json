@@ -471,5 +471,8 @@
     "topActivity": "热门活动",
     "activity": "活动",
     "store": "商城"
+  },
+  "global": {
+    "error": "错误"
   }
 }

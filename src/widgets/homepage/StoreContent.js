@@ -5,6 +5,7 @@ import ItemListView from '../Store/ItemListView';
 import CardContainer from '../Store/components/CardContainer';
 import CacheUtils from '../../constants/commons/CacheUtil';
 import I18n from '../../../resources/languages/I18n';
+import { Events } from '../../services/events';
 
 class StoreContent extends React.Component {
   constructor(props) {
@@ -20,9 +21,9 @@ class StoreContent extends React.Component {
     };
   }
 
-  componentWillUnmount() {}
+  UNSAFE_componentWillUnmount() {}
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     // 获取当前选中的网络
     CacheUtils.getItem('selectNetwork', (err, ret) => {
       if (err) {
@@ -40,7 +41,7 @@ class StoreContent extends React.Component {
 
   async componentDidMount() {
     // 监听网络变动
-    DeviceEventEmitter.addListener('selectNetwork', network => {
+    DeviceEventEmitter.addListener(Events.SELECT_A_CHAIN, network => {
       this.setState({
         network,
       });

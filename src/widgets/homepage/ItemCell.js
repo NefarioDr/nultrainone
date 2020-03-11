@@ -10,6 +10,8 @@ const smallDefault = require('../../../resources/img/newsBaseImg.png');
 const largeDefault = require('../../../resources/img/largeDefault.png');
 
 const ItemCell = ({article, onPressHandler}) => (
+  console.log(`ItemCell: ${JSON.stringify(article)}`),
+
   <TouchableOpacity
     activeOpacity={0.8}
     style={styles.container}

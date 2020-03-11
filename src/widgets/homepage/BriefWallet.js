@@ -18,9 +18,13 @@ import WalletList from './WalletList';
 import CacheUtil from '../../commons/CacheUtil';
 import I18n from '../../../resources/languages/I18n';
 import * as authService from '../../services/auth';
-import {getWalletInfo} from '../../commons/WalletUtil';
-// import {createU3} from 'u3.js';
-import {SCREEN_HEIGHT, SCREEN_WIDTH} from '../../constants/Common';
+import { loadWalletInfo, saveWalletInfo } from '../../commons/WalletUtil';
+import { createU3 } from 'u3.js';
+import { SCREEN_HEIGHT, SCREEN_WIDTH } from '../../constants/Common';
+import { Events } from '../../services/events';
+import { HSRouter } from '../../homescreen/HSRouter';
+import { UserManager } from '../loginpage/UserManager';
+import { GlobalSettings } from '../../services/GlobalSettings';
 
 const authorizationIcon = require('../../../resources/img/authorizationIcon.png');
 const selectIcon = require('../../../resources/img/selectIcon.png');
@@ -32,11 +36,10 @@ const openEyeW = require('../../../resources/img/openEyeW.png');
 const closeEyeW = require('../../../resources/img/closeEyeW.png');
 const closeIcon = require('../../../resources/img/closeIcon.png');
 
-class MainHeader extends React.Component {
+export default class BriefWallet extends React.Component {
   constructor(props) {
     super(props);
 
-    this.onRefresh = this._onRefresh.bind(this);
     this.state = {
       walletInfo: null,
       showNetworkList: false,
@@ -62,38 +65,34 @@ class MainHeader extends React.Component {
     };
   }
 
+  onForceRefresh = async () => { await this._onRefresh(); };
+  onWalletStatusChanged = async () => { await this._onRefresh(); };
+  onUserLogin = async userInfo => { };
+  onUserLogout = async () => { };
+
   componentDidMount() {
-    const {onRef} = this.props;
-    if (onRef) {
-      onRef(this);
-    }
-
     // 监听钱包状态获取当前账号是否导入或者删除钱包，更改钱包状态
-    DeviceEventEmitter.addListener('changeWalletStatus', async () => {
-      await this.ugasPrice();
-      this._fetchData();
-    });
+    DeviceEventEmitter.addListener(Events.WALLET_STATUS_CHANGED, this.onWalletStatusChanged);
+    DeviceEventEmitter.addListener(Events.FORCE_TO_REFRESH, this.onForceRefresh);
+    DeviceEventEmitter.addListener(Events.USR_LOGIN, this.onUserLogin);
+    DeviceEventEmitter.addListener(Events.USR_LOGOUT, this.onUserLogout);
   }
 
-  // 跳转到当前账号代币信息页面
-  goTotalAssets() {
-    this._onRefresh();
-    NavigationUtil.go(this.props.navigation, 'TotalAssets', {
-      accountName: this.state.walletInfo.accountName,
-    });
+  UNSAFE_componentWillUnmount() {
+    DeviceEventEmitter.removeListener(Events.WALLET_STATUS_CHANGED, this.onWalletStatusChanged);
+    DeviceEventEmitter.removeListener(Events.FORCE_TO_REFRESH, this.onForceRefresh);
+    DeviceEventEmitter.removeListener(Events.USR_LOGIN, this.onUserLogin);
+    DeviceEventEmitter.removeListener(Events.USR_LOGOUT, this.onUserLogout);
   }
 
-  componentWillUnmount() {
-    DeviceEventEmitter.removeAllListeners('changeWalletStatus');
-  }
-
-  async componentWillMount() {
-    await this._fetchData();
-    await CacheUtil.getItem('eye1', (err, ret) => {
+  UNSAFE_componentWillMount() {
+    this._fetchData();
+    CacheUtil.getItem('eye1', (err, ret) => {
       if (err) {
         console.log(err);
         return;
       }
+
       if (ret) {
         const info = JSON.parse(ret);
         this.setState({
@@ -101,9 +100,18 @@ class MainHeader extends React.Component {
         });
       }
     });
+
     if (this.state.walletInfo) {
       this.checkBackupStatus();
     }
+  }
+
+  // 跳转到当前账号代币信息页面
+  onTotalAssetsClicked() {
+    this._onRefresh();
+    NavigationUtil.go(this.props.navigation, 'TotalAssets', {
+      accountName: this.state.walletInfo.accountName,
+    });
   }
 
   _onRefresh = async () => {
@@ -112,34 +120,26 @@ class MainHeader extends React.Component {
   };
 
   _fetchData = async () => {
-    const {chainInfo, network} = this.props;
+    const chainInfo = GlobalSettings.chainInfo;
+    const network = GlobalSettings.chainName;
     // 切换网络获取当前网络状态
-    await CacheUtil.getItem('selectNetwork', (err, ret) => {
-      if (err) {
-        console.log(err);
-        return;
-      }
-      if (ret) {
-        ret = JSON.parse(ret);
-        this.setState({
-          config: ret,
-          selectionNetwork: ret.key === 'TestNet' ? 'TestNet' : 'MainNet',
-        });
-      }
+    this.setState({
+      config: chainInfo,
+      selectionNetwork: network === 'TestNet' ? 'TestNet' : 'MainNet',
     });
-    // 储存选择的链信息
-    this.getNetworkList();
-    await this.getWalletInfo();
-    if (this.state.walletInfo && this.state.walletInfo.accountName) {
+
+    const wi = await this.getWalletInfo(network);
+
+    if (wi && wi.walletInfo.accountName) {
       try {
         const ugasBalance = await authService.getCurrencyBalance({
-          accountName: this.state.walletInfo.accountName,
+          accountName: wi.walletInfo.accountName,
           symbol: 'UGAS',
           code: 'utrio.token',
           chainId: chainInfo.chainId,
           network,
         });
-        if (ugasBalance.state == 'success') {
+        if (ugasBalance.state === 'success') {
           let ugasNum = ugasBalance.data[0] ? ugasBalance.data[0] : '0 UGAS';
           this.setState({
             countNum: ugasNum.replace(' UGAS', ''),
@@ -152,16 +152,6 @@ class MainHeader extends React.Component {
     }
   };
 
-  // 获取当前链信息
-  getNetworkList = () => {
-    const {chainInfo, network} = this.props;
-    let networkData = chainInfo;
-    networkData = Object.assign({}, networkData, {
-      key: network,
-    });
-    CacheUtil.saveItem('selectNetwork', networkData);
-  };
-
   // 获取当时法币汇率
   ugasPrice = async () => {
     await authService
@@ -169,7 +159,7 @@ class MainHeader extends React.Component {
       .then(result => {
         if (result.state === 'success') {
           this.setState({
-            price: result.price[I18n.locale == 'en' ? 'usd' : 'cny'],
+            price: result.price[I18n.locale === 'en' ? 'usd' : 'cny'],
           });
         }
       })
@@ -178,12 +168,20 @@ class MainHeader extends React.Component {
       });
   };
 
-  _selectNetwork = network => {
+  onSelectNetworkClicked = async network => {
     this.setState({
       showNetworkList: false,
       selectionNetwork: network,
     });
-    this.getWalletInfo(network);
+
+    const wi = this.getWalletInfo(network);
+    if (wi) {
+      this.setState({
+        walletInfo: wi.walletInfo,
+        selectionWallet: wi.selectionWallet,
+      });
+    }
+
     let networkData = {};
     if (this.state.networkList) {
       if (network === 'TestNet') {
@@ -195,76 +193,74 @@ class MainHeader extends React.Component {
     networkData = Object.assign({}, networkData, {
       key: network === 'TestNet' ? 'TestNet' : 'MainNet',
     });
-    CacheUtil.saveItem('selectNetwork', networkData);
-    DeviceEventEmitter.emit(
-      'selectNetwork',
-      network === 'TestNet' ? 'TestNet' : 'MainNet',
-    );
+
+    GlobalSettings.saveSelectNetwork(networkData);
+
+    DeviceEventEmitter.emit(Events.SELECT_A_CHAIN, network === 'TestNet' ? 'TestNet' : 'MainNet',);
   };
 
-  handleCreatClick = () => {
-    const {loggedIn} = this.props;
+  onCreatWalletClicked = () => {
+    const loggedIn = UserManager.isLogedIn;
     if (loggedIn) {
-      NavigationUtil.go(this.props.navigation, 'CreateWallet', {
-        goBack: 'Home',
+      NavigationUtil.go(this.props.navigation, HSRouter.CREATE_WALLET, {
+        goBack: HSRouter.HOME_SCREEN,
       });
     } else {
-      NavigationUtil.reset(this.props.navigation, 'Landing');
+      NavigationUtil.go(this.props.navigation, HSRouter.LOGIN_SCREEN);
     }
   };
-  handleImportClick = () => {
-    const {loggedIn} = this.props;
+
+  onImportWalletClicked = () => {
+    const loggedIn = UserManager.isLogedIn;
     if (loggedIn) {
-      NavigationUtil.go(this.props.navigation, 'ImportWallet', {
-        goBack: 'Home',
+      NavigationUtil.go(this.props.navigation, HSRouter.IMPORT_WALLET, {
+        goBack: HSRouter.HOME_SCREEN,
       });
     } else {
-      NavigationUtil.reset(this.props.navigation, 'Landing');
+      NavigationUtil.go(this.props.navigation, HSRouter.LOGIN_SCREEN);
     }
   };
 
   // 获取当前账号钱包信息
   getWalletInfo = async network => {
-    const {chainInfo, userInfo} = this.props;
-    const selectionNetwork = network || this.state.selectionNetwork;
-    const walletInfo = await getWalletInfo(
-      selectionNetwork === 'TestNet' ? 'TestNet' : 'MainNet',
-      userInfo,
-    );
-    const selectionWallet = walletInfo ? walletInfo.accountName : '';
-    // if (!!userInfo && !!userInfo.id && !!walletInfo) {
-    //   const key = userInfo.id + (walletInfo.walletId || walletInfo._id)
-    //   clearWallet(chainInfo, walletInfo.accountName, key)
-    // }
-    this.setState({
-      walletInfo: walletInfo,
-      selectionWallet,
-    });
+    const userInfo = await UserManager.currentUser();
+    if (userInfo) {
+      const selectionNetwork = network || this.state.selectionNetwork;
+      const walletInfo = await loadWalletInfo(
+        selectionNetwork === 'TestNet' ? 'TestNet' : 'MainNet',
+        userInfo,
+      );
+      const selectionWallet = walletInfo ? walletInfo.accountName : '';
+      return {walletInfo, selectionWallet};
+    }
+
+    return null;
   };
 
-  goScanning = () => {
-    const {userInfo, loggedIn} = this.props;
+  onScanningClicked = () => {
+    const loggedIn = UserManager.isLogedIn;
     if (loggedIn) {
-      NavigationUtil.reset(this.props.navigation, 'Scanner');
+      NavigationUtil.go(this.props.navigation, HSRouter.QRCODE_SCANNING);
     } else {
-      NavigationUtil.reset(this.props.navigation, 'Landing');
+      NavigationUtil.go(this.props.navigation, HSRouter.LOGIN_SCREEN);
     }
   };
 
-  goSend = () => {
-    NavigationUtil.reset(this.props.navigation, 'Send');
+  onTransferClicked = () => {
+    NavigationUtil.go(this.props.navigation, HSRouter.TRANSFER_UGAS);
   };
 
-  goRevceive = () => {
-    NavigationUtil.reset(this.props.navigation, 'Revceive');
+  onGatheringClicked = () => {
+    NavigationUtil.go(this.props.navigation, HSRouter.GATHERING_UGAS);
   };
 
-  goAuthorization = () => {
-    NavigationUtil.reset(this.props.navigation, 'Authorization');
+  onAuthorizationClicked = () => {
+    NavigationUtil.go(this.props.navigation, HSRouter.AUTHORIZATION);
   };
 
-  _selectWallet = async wallet => {
-    const {userInfo, chainInfo} = this.props;
+  onSelectWalletClicked = async wallet => {
+    const userInfo = UserManager.userInfo;
+    const chainInfo = UserManager.chainInfo;
     this.setState({
       showWalletList: false,
       selectionWallet: wallet.accountName,
@@ -274,20 +270,19 @@ class MainHeader extends React.Component {
       userId: userInfo.id,
       accountName: wallet.accountName,
     };
-    // const u3 = createU3(chainInfo);
-    // const acc_info = await u3.getAccountByName(wallet.accountName);
-    // openInfo.public_key = acc_info.activePk;
+    const u3 = createU3(chainInfo);
+    const acc_info = await u3.getAccountByName(wallet.accountName);
+    openInfo.public_key = acc_info.activePk;
 
-    let str = 'walletInfo_' + userInfo.id;
-    CacheUtil.saveItem(str, openInfo);
-    // const key = userInfo.id + wallet._id
-    // clearWallet(chainInfo, wallet.accountName, key)
+    await saveWalletInfo(userInfo, openInfo);
+
     this._fetchData();
-    DeviceEventEmitter.emit('changeWalletStatus');
+
+    DeviceEventEmitter.emit(Events.WALLET_STATUS_CHANGED);
   };
 
-  isShowWalletList = async () => {
-    const {chainInfo, network} = this.props;
+  onShowWalletListClicked = async () => {
+    const { chainInfo, network } = this.props;
     try {
       await Promise.all(
         this.state.walletInfo.walletList.map(async wallet => {
@@ -320,7 +315,7 @@ class MainHeader extends React.Component {
         walletArr.push(wallet._id);
       });
     authService
-      .checkBackupStatus({walletIds: walletArr.toString()})
+      .checkBackupStatus({ walletIds: walletArr.toString() })
       .then(result => {
         if (result.state === 'success') {
           for (let backup of result.docs) {
@@ -329,14 +324,14 @@ class MainHeader extends React.Component {
                 visible: true,
                 dialogSubmitText: I18n.t('wallet.backupNow'),
                 submitComfirm: () => {
-                  this.setState({visible: false}, () => {
+                  this.setState({ visible: false }, () => {
                     setTimeout(() => {
                       NavigationUtil.go(this.props.navigation, 'MoreWallet');
                     }, 500);
                   });
                 },
                 dialogCancelText: I18n.t('wallet.backupLater'),
-                cancelBtnAction: () => {},
+                cancelBtnAction: () => { },
                 dialogTitle: I18n.t('wallet.walletBackupRequired'),
                 dialogDec: I18n.t('wallet.walletBackupRequiredTips'),
               });
@@ -350,13 +345,13 @@ class MainHeader extends React.Component {
       });
   };
 
-  toggleEye = status => {
-    CacheUtil.saveItem('eye1', JSON.stringify({toggleWallet: status}));
-    this.setState({toggleWallet: status});
+  onToggleEyeClicked = status => {
+    CacheUtil.saveItem('eye1', JSON.stringify({ toggleWallet: status }));
+    this.setState({ toggleWallet: status });
   };
 
   getDigitalTwinsByAccount = async () => {
-    const {userInfo} = this.props;
+    const { userInfo } = this.props;
     try {
       const digitalTwins = await authService.getDigitalTwinsByAccount({
         accountName: this.state.walletInfo.accountName,
@@ -373,17 +368,17 @@ class MainHeader extends React.Component {
   };
 
   render() {
-    const {ugasPrice} = this.props;
+    const { ugasPrice } = this.props;
     let price = this.state.price;
     if (ugasPrice) {
-      price =
-        this.state.price || ugasPrice[I18n.locale == 'en' ? 'usd' : 'cny'];
+      price = this.state.price || ugasPrice[I18n.locale == 'en' ? 'usd' : 'cny'];
     }
+
     return (
       <View style={styles.container}>
         <LinearGradient
-          start={{x: 0, y: 0}}
-          end={{x: 1, y: 0.8}}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0.8 }}
           colors={['#3DA1F6', '#2E5BF7']}
           style={styles.containerBg}>
           <View style={styles.containerBgParts} />
@@ -394,26 +389,26 @@ class MainHeader extends React.Component {
               <TouchableOpacity
                 activeOpacity={0.6}
                 style={styles.topNameBox}
-                onPress={() => this.isShowWalletList()}>
+                onPress={() => this.onShowWalletListClicked()}>
                 <Text style={styles.topName}>
                   {this.state.walletInfo.accountName}
                 </Text>
                 <Image
-                  style={{width: 11, height: 6, marginLeft: 6, marginTop: 3}}
+                  style={{ width: 11, height: 6, marginLeft: 6, marginTop: 3 }}
                   source={selectIcon}
                 />
               </TouchableOpacity>
             ) : (
-              <View style={styles.topNameBox}>
-                <Text style={styles.topName} />
-              </View>
-            )}
+                <View style={styles.topNameBox}>
+                  <Text style={styles.topName} />
+                </View>
+              )}
 
             <TouchableOpacity
               activeOpacity={0.6}
-              onPress={() => this.goScanning()}>
+              onPress={() => this.onScanningClicked()}>
               <Image
-                style={{width: 20, height: 20, marginLeft: 40}}
+                style={{ width: 20, height: 20, marginLeft: 40 }}
                 source={scanning}
               />
             </TouchableOpacity>
@@ -422,15 +417,15 @@ class MainHeader extends React.Component {
             <View style={styles.haveWallet}>
               <TouchableOpacity
                 activeOpacity={0.8}
-                onPress={() => this.goTotalAssets()}>
+                onPress={() => this.onTotalAssetsClicked()}>
                 <View style={styles.walletInfor}>
                   <View style={styles.walletAssets}>
                     {this.state.toggleWallet ? (
                       <View style={styles.numBox}>
                         <Text style={styles.num}>
                           {price &&
-                          this.state.countNum &&
-                          this.state.countNum != 0
+                            this.state.countNum &&
+                            this.state.countNum != 0
                             ? (price * this.state.countNum).toFixed(2)
                             : 0}
                         </Text>
@@ -440,27 +435,27 @@ class MainHeader extends React.Component {
                         <TouchableOpacity
                           style={styles.desensitization}
                           activeOpacity={0.8}
-                          onPress={() => this.toggleEye(false)}>
+                          onPress={() => this.onToggleEyeClicked(false)}>
                           <Image
-                            style={{width: 20, height: 14, marginTop: 6}}
+                            style={{ width: 20, height: 14, marginTop: 6 }}
                             source={openEyeW}
                           />
                         </TouchableOpacity>
                       </View>
                     ) : (
-                      <View style={styles.numBox}>
-                        <Text style={styles.num}>*****</Text>
-                        <TouchableOpacity
-                          style={styles.desensitization}
-                          activeOpacity={0.8}
-                          onPress={() => this.toggleEye(true)}>
-                          <Image
-                            style={{width: 20, height: 9}}
-                            source={closeEyeW}
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    )}
+                        <View style={styles.numBox}>
+                          <Text style={styles.num}>*****</Text>
+                          <TouchableOpacity
+                            style={styles.desensitization}
+                            activeOpacity={0.8}
+                            onPress={() => this.onToggleEyeClicked(true)}>
+                            <Image
+                              style={{ width: 20, height: 9 }}
+                              source={closeEyeW}
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      )}
                     <Text style={styles.assets}>
                       ( {I18n.t('page.totalAssets')} )
                     </Text>
@@ -468,9 +463,9 @@ class MainHeader extends React.Component {
                   <View style={styles.goNextBox}>
                     {(this.state.walletInfo.hasTwins ||
                       this.state.digitalTwins.length > 0) && (
-                      <Text style={styles.goNextText}>查看数字孪生</Text>
-                    )}
-                    <Image style={{width: 8, height: 11}} source={goNext} />
+                        <Text style={styles.goNextText}>查看数字孪生</Text>
+                      )}
+                    <Image style={{ width: 8, height: 11 }} source={goNext} />
                   </View>
                 </View>
               </TouchableOpacity>
@@ -478,9 +473,9 @@ class MainHeader extends React.Component {
                 <TouchableOpacity
                   activeOpacity={0.8}
                   style={[
-                    this.state.selectionNetwork == 'TestNet' && {width: '50%'},
+                    this.state.selectionNetwork == 'TestNet' && { width: '50%' },
                   ]}
-                  onPress={() => this.goSend()}>
+                  onPress={() => this.onTransferClicked()}>
                   <View style={[styles.topBarCard]}>
                     <Image
                       style={[
@@ -501,9 +496,9 @@ class MainHeader extends React.Component {
                 <TouchableOpacity
                   activeOpacity={0.8}
                   style={[
-                    this.state.selectionNetwork == 'TestNet' && {width: '50%'},
+                    this.state.selectionNetwork === 'TestNet' && { width: '50%' },
                   ]}
-                  onPress={() => this.goRevceive()}>
+                  onPress={() => this.onGatheringClicked()}>
                   <View style={[styles.topBarCard, styles.leftBorder]}>
                     <Image
                       style={[
@@ -526,10 +521,10 @@ class MainHeader extends React.Component {
                 {this.state.selectionNetwork == 'MainNet' && (
                   <TouchableOpacity
                     activeOpacity={0.8}
-                    onPress={() => this.goAuthorization()}>
+                    onPress={() => this.onAuthorizationClicked()}>
                     <View style={[styles.topBarCard, styles.leftBorder]}>
                       <Image
-                        style={{width: 20, height: 20, marginRight: 8}}
+                        style={{ width: 20, height: 20, marginRight: 8 }}
                         source={authorizationIcon}
                       />
                       <Text style={styles.barText}>
@@ -541,31 +536,31 @@ class MainHeader extends React.Component {
               </View>
             </View>
           ) : (
-            <View style={styles.noWallet}>
-              <View style={styles.btnBox}>
-                <Button
-                  containerStyle={[styles.btnStyle]}
-                  style={styles.btnText}
-                  text={I18n.t('page.createWallet')}
-                  onPress={this.handleCreatClick}
-                />
-                <Button
-                  containerStyle={[styles.btnStyle]}
-                  style={styles.btnText}
-                  text={I18n.t('page.importWallet')}
-                  onPress={this.handleImportClick}
-                />
+              <View style={styles.noWallet}>
+                <View style={styles.btnBox}>
+                  <Button
+                    containerStyle={[styles.btnStyle]}
+                    style={styles.btnText}
+                    text={I18n.t('page.createWallet')}
+                    onPress={this.onCreatWalletClicked}
+                  />
+                  <Button
+                    containerStyle={[styles.btnStyle]}
+                    style={styles.btnText}
+                    text={I18n.t('page.importWallet')}
+                    onPress={this.onImportWalletClicked}
+                  />
+                </View>
+                <Text style={styles.createTips}>
+                  {I18n.t('page.createAccountTips')}
+                </Text>
               </View>
-              <Text style={styles.createTips}>
-                {I18n.t('page.createAccountTips')}
-              </Text>
-            </View>
-          )}
+            )}
         </View>
         <NetworkList
           visible={this.state.showNetworkList}
           selectionNetwork={this.state.selectionNetwork}
-          selectNetwork={this._selectNetwork}
+          selectNetwork={this.onSelectNetworkClicked}
           {...this.props}
         />
         {this.state.showWalletList && (
@@ -573,7 +568,7 @@ class MainHeader extends React.Component {
             visible={this.state.showWalletList}
             walletList={this.state.walletInfo.walletList}
             selectionWallet={this.state.selectionWallet}
-            selectWallet={this._selectWallet}
+            selectWallet={this.onSelectWalletClicked}
             isAddWallet={this.state.isAddWallet}
             config={this.state.config}
             closeWallet={() => {
@@ -596,7 +591,7 @@ class MainHeader extends React.Component {
             props={this.props}
           />
         )}
-        <ToastUtils
+        {/* <ToastUtils
           visible={this.state.toastVisible}
           dialogSubmitText={this.state.dialogSubmitText}
           submitComfirm={this.state.submitComfirm}
@@ -605,12 +600,12 @@ class MainHeader extends React.Component {
           dialogTitle={this.state.dialogTitle}
           dialogDec={this.state.dialogDec}
           closeToast={() => this.setState({toastVisible: false})}
-        />
+        /> */}
         <Modal
           visible={this.state.visible}
           transparent={true}
           animationType="fade"
-          onRequestClose={() => this.setState({visible: false})}>
+          onRequestClose={() => this.setState({ visible: false })}>
           <View style={styles.bg}>
             <View style={styles.dialog}>
               <TouchableOpacity
@@ -620,7 +615,7 @@ class MainHeader extends React.Component {
                   top: 16,
                 }}
                 activeOpacity={0.8}
-                onPress={() => this.setState({visible: false})}>
+                onPress={() => this.setState({ visible: false })}>
                 <Image
                   source={closeIcon}
                   style={{
@@ -682,7 +677,7 @@ const styles = StyleSheet.create({
     width: 178,
     height: 178,
     backgroundColor: 'rgba(56,42,221,0.20);',
-    transform: [{rotate: '-27deg'}, {translateX: -50}, {translateY: -60}],
+    transform: [{ rotate: '-27deg' }, { translateX: -50 }, { translateY: -60 }],
   },
   containerBox: {
     position: 'absolute',
@@ -921,12 +916,4 @@ const styles = StyleSheet.create({
   },
 });
 
-// const mapStateToProps = state => {
-//   return {
-//     userInfo: state.auth.userInfo,
-//     loggedIn: state.auth.loggedIn,
-//     registered: state.auth.registered,
-//   };
-// };
-// export default connect(mapStateToProps)(MainHeader);
-export default MainHeader;
+// export default BriefWallet;

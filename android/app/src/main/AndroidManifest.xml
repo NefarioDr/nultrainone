@@ -20,7 +20,24 @@
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
       </activity>
-      <activity android:name="com.facebook.react.devsupport.DevSettingsActivity" />
+      <!-- <meta-data android:name="JPUSH_CHANNEL" android:value="${APP_CHANNEL}" /> -->
+
+      <activity android:name="com.facebook.react.devsupport.DevSettingsActivity"/>
+      <meta-data android:name="com.facebook.sdk.ApplicationId" android:value="@string/facebook_app_id"/>
+      <provider android:authorities="com.facebook.app.FacebookContentProvider216902495534836"
+                  android:name="com.facebook.FacebookContentProvider"
+                  android:exported="true"/>
+
+      <activity
+                android:name="com.ultrainone.wxapi.WXEntryActivity"
+                android:label="@string/app_name"
+                android:exported="true"
+      />
+      <activity
+                android:name="com.ultrainone.wxapi.WXPayEntryActivity"
+                android:label="@string/app_name"
+                android:exported="true"
+      />
     </application>
 
 </manifest>

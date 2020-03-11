@@ -69,7 +69,7 @@ class MoreNewList extends React.Component {
     };
   }
 
-  componentWillMount() {}
+  UNSAFE_componentWillMount() {}
 
   componentDidMount() {
     this._fetchData();
@@ -231,7 +231,7 @@ class MoreNewList extends React.Component {
 
           const navigateAction = NavigationActions.navigate({
             routeName: 'Web',
-            params: {callbackRoute: 'MainContent', article: article},
+            params: {callbackRoute: 'UltrainNews', article: article},
           });
           this.props.navigation.dispatch(navigateAction);
         }}

@@ -27,7 +27,7 @@ const SCREEN_HEIGHT = Dimensions.get('window').height;
 const TOASTTOP = SCREEN_HEIGHT / 2 - 180;
 const SEMBOLD = '700';
 
-import CacheUtils from '../../constants/commons/CacheUtil';
+import CacheUtils from '../../commons/CacheUtil';
 
 const revceiveBg = require('../../../resources/img/revceiveBg.png');
 const copyIcon = require('../../../resources/img/copyIcon.png');

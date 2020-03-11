@@ -34,6 +34,7 @@ import NavigationUtil from '../../constants/commons/NavigationUtil';
 import {createU3} from 'u3.js';
 import RNSecureKeyStore, {ACCESSIBLE} from 'react-native-secure-key-store';
 import moment from 'moment';
+import { HSRouter } from '../../homescreen/HSRouter';
 
 const headLogo = require('../../../resources/img/headLogo2.png');
 const goNext = require('../../../resources/img/goNext.png');
@@ -116,7 +117,7 @@ class Send extends React.Component {
     });
   }
 
-  async componentWillMount() {
+  async UNSAFE_componentWillMount() {
     this.getTransFee();
     let result = await StorageHelper.get('selectNetwork');
     this.setState({
@@ -159,9 +160,9 @@ class Send extends React.Component {
   goScanning = () => {
     const {userInfo, loggedIn} = this.props;
     if (loggedIn) {
-      NavigationUtil.reset(this.props.navigation, 'Scanner');
+      NavigationUtil.reset(this.props.navigation, HSRouter.QRCODE_SCANNING);
     } else {
-      NavigationUtil.reset(this.props.navigation, 'Landing');
+      NavigationUtil.reset(this.props.navigation, HSRouter.LOGIN_SCREEN);
     }
   };
 
@@ -176,13 +177,13 @@ class Send extends React.Component {
             toastVisible: true,
             dialogSubmitText: I18n.t('btn.confirm'),
             submitComfirm: () => {
-              NavigationUtil.go(this.props.navigation, 'ImportWallet', {
+              NavigationUtil.go(this.props.navigation, HSRouter.IMPORT_WALLET, {
                 accountName: walletInfo.accountName,
               });
             },
             dialogCancelText: I18n.t('btn.cancel'),
             cancelBtnAction: () => {
-              NavigationUtil.go(this.props.navigation, 'Home');
+              NavigationUtil.go(this.props.navigation, HSRouter.HOME_SCREEN);
             },
             dialogTitle: I18n.t('page.prompt'),
             dialogDec: I18n.t('page.noGetWalletInfoTip'),
@@ -195,13 +196,13 @@ class Send extends React.Component {
           toastVisible: true,
           dialogSubmitText: I18n.t('btn.confirm'),
           submitComfirm: () => {
-            NavigationUtil.go(this.props.navigation, 'ImportWallet', {
+            NavigationUtil.go(this.props.navigation, HSRouter.IMPORT_WALLET, {
               accountName: walletInfo.accountName,
             });
           },
           dialogCancelText: I18n.t('btn.cancel'),
           cancelBtnAction: () => {
-            NavigationUtil.go(this.props.navigation, 'Home');
+            NavigationUtil.go(this.props.navigation, HSRouter.HOME_SCREEN);
           },
           dialogTitle: I18n.t('page.prompt'),
           dialogDec: I18n.t('page.noGetWalletInfoTip'),

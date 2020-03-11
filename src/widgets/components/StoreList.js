@@ -25,7 +25,7 @@ class StoreList extends React.Component{
       dataSource: []
     }
   }
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     storeService.getAllLists({
       type: 2
     }).then(res => {

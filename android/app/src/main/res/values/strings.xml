@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">nUltrainOne</string>
+    <string name="facebook_app_id">216902495534836</string>
+    <string name="fb_login_protocol_scheme">fb216902495534836</string>
 </resources>

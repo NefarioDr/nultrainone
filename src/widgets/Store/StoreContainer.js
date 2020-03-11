@@ -1,7 +1,7 @@
 import React from 'react';
 import I18n from 'react-native-i18n';
 import Banner from './Banner';
-import MainContent from './MainContent';
+import UltrainNews from './UltrainNews';
 
 const maxHeight = Dimensions.get('window').height;
 const maxWidth = Dimensions.get('window').width;
@@ -95,7 +95,7 @@ class StoreContainer extends React.Component {
     //this.refs.toast.show(I18n.t("page.notEnoughPointTip"), DURATION.LENGTH_SHORT);
   };
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     const {userInfo} = this.props;
     if (userInfo && userInfo.wallets && userInfo.wallets.length) {
       let walletId = userInfo.wallets[0]._id;
@@ -145,7 +145,7 @@ class StoreContainer extends React.Component {
             ref={this.storeBannerList}
           />
           <View style={styles.mainContent}>
-            <MainContent
+            <UltrainNews
               {...this.props}
               onBuy={this.showTip}
               ref={this.storeMainList}

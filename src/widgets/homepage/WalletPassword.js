@@ -51,7 +51,7 @@ class WalletPassword extends React.Component {
     };
   }
 
-  async componentWillMount() {
+  async UNSAFE_componentWillMount() {
     let result = await StorageHelper.get('selectNetwork');
     this.setState({
       networkName: result.key,

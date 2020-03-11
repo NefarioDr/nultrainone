@@ -1,13 +1,13 @@
 import React from 'react';
-import {ListView, StyleSheet, View, DeviceEventEmitter} from 'react-native';
+import {StyleSheet, View, DeviceEventEmitter} from 'react-native';
 import {Dimensions} from 'react-native';
 import ItemCell from './ItemCell';
 import ItemListView from './ItemListView';
 // import {NavigationActions} from 'react-navigation';
 import I18n from '../../../resources/languages/I18n';
 import CardContainer from '../components/CardContainer';
-
-class MainContent extends React.Component {
+import ListView from 'deprecated-react-native-listview';
+class UltrainNews extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -20,7 +20,7 @@ class MainContent extends React.Component {
     };
   }
 
-  componentWillUnmount() {
+  UNSAFE_componentWillUnmount() {
     DeviceEventEmitter.removeAllListeners('refreshMainList');
   }
 
@@ -37,7 +37,7 @@ class MainContent extends React.Component {
           // TODO(liangqin) navigate to web view
           // const navigateAction = NavigationActions.navigate({
           //   routeName: 'Web',
-          //   params: {callbackRoute: 'MainContent', article: article},
+          //   params: {callbackRoute: 'UltrainNews', article: article},
           // });
           // this.props.navigation.dispatch(navigateAction);
         }}
@@ -60,6 +60,7 @@ class MainContent extends React.Component {
       rowHasChanged: (r1, r2) => r1 !== r2,
     });
     const data = topContent;
+    // console.log(`FFFFF: data = ${JSON.stringify(data)}`);
     const dataSource = ds.cloneWithRows(data);
     return (
       <CardContainer
@@ -149,4 +150,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default MainContent;
+export default UltrainNews;

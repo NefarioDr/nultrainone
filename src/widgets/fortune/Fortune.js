@@ -22,6 +22,9 @@ import * as authService from '../../services/auth';
 import {getWalletInfo} from '../../utils/WalletUtil';
 import {createU3} from 'u3.js';
 import {clearWallet} from '../../utils/ClearWallet';
+import { HSRouter } from '../../homescreen/HSRouter';
+import { saveWalletInfo } from '../../commons/WalletUtil';
+import { Events } from '../../services/events';
 
 const authorizationIcon = require('../../../resources/img/authorizationIcon.png');
 const selectIcon = require('../../../resources/img/selectIcon.png');
@@ -87,11 +90,11 @@ export default class Fortune extends React.Component {
     });
   }
 
-  componentWillUnmount() {
+  UNSAFE_componentWillUnmount() {
     DeviceEventEmitter.removeAllListeners('changeWalletStatus');
   }
 
-  async componentWillMount() {
+  async UNSAFE_componentWillMount() {
     await this._fetchData();
     await CacheUtil.getItem('eye1', (err, ret) => {
       if (err) {
@@ -209,21 +212,21 @@ export default class Fortune extends React.Component {
   handleCreatClick = () => {
     const {loggedIn} = this.props;
     if (loggedIn) {
-      NavigationUtil.go(this.props.navigation, 'CreateWallet', {
+      NavigationUtil.go(this.props.navigation, HSRouter.CREATE_WALLET, {
         goBack: 'Home',
       });
     } else {
-      NavigationUtil.reset(this.props.navigation, 'Landing');
+      NavigationUtil.reset(this.props.navigation, HSRouter.LOGIN_SCREEN);
     }
   };
   handleImportClick = () => {
     const {loggedIn} = this.props;
     if (loggedIn) {
-      NavigationUtil.go(this.props.navigation, 'ImportWallet', {
+      NavigationUtil.go(this.props.navigation, HSRouter.IMPORT_WALLET, {
         goBack: 'Home',
       });
     } else {
-      NavigationUtil.reset(this.props.navigation, 'Landing');
+      NavigationUtil.reset(this.props.navigation, HSRouter.LOGIN_SCREEN);
     }
   };
 
@@ -282,12 +285,11 @@ export default class Fortune extends React.Component {
     const acc_info = await u3.getAccountByName(wallet.accountName);
     openInfo.public_key = acc_info.activePk;
 
-    let str = 'walletInfo_' + userInfo.id;
-    CacheUtil.saveItem(str, openInfo);
-    // const key = userInfo.id + wallet._id
-    // clearWallet(chainInfo, wallet.accountName, key)
+    await saveWalletInfo(userInfo, openInfo);
+
     this._fetchData();
-    DeviceEventEmitter.emit('changeWalletStatus');
+
+    DeviceEventEmitter.emit(Events.WALLET_STATUS_CHANGED);
   };
 
   isShowWalletList = async () => {
@@ -932,4 +934,4 @@ const styles = StyleSheet.create({
 //     registered: state.auth.registered,
 //   };
 // };
-// export default connect(mapStateToProps)(MainHeader);
+// export default connect(mapStateToProps)(BriefWallet);

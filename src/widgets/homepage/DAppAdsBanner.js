@@ -3,11 +3,12 @@ import {
   StyleSheet,
   Image,
   View,
+  Text,
   DeviceEventEmitter,
   TouchableHighlight,
   ImageBackground,
 } from 'react-native';
-import Swiper from 'react-native-swiper';
+import SwiperFlatList from 'react-native-swiper-flatlist';
 import {ImageUrl} from '../../constants/Urls';
 import {Dimensions} from 'react-native';
 import NavigationUtil from '../../commons/NavigationUtil';
@@ -17,11 +18,12 @@ import I18n from '../../../resources/languages/I18n';
 
 import RNSecureKeyStore from 'react-native-secure-key-store';
 import {SCREEN_WIDTH} from '../../constants/Common';
+import { HSRouter } from '../../homescreen/HSRouter';
 
 let height = SCREEN_WIDTH * 0.32;
 const bannerBaseImg = require('../../../resources/img/bannerBaseImg.png');
 
-class SwiperBanner extends React.Component {
+class DAppAdsBanner extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -49,7 +51,7 @@ class SwiperBanner extends React.Component {
     });
   }
 
-  componentWillUnmount() {
+  UNSAFE_componentWillUnmount() {
     DeviceEventEmitter.removeAllListeners('changeWalletStatus');
   }
 
@@ -119,7 +121,7 @@ class SwiperBanner extends React.Component {
       toastVisible: true,
       dialogSubmitText: I18n.t('btn.confirm'),
       submitComfirm: () => {
-        NavigationUtil.go(this.props.navigation, 'ImportWallet', {
+        NavigationUtil.go(this.props.navigation, HSRouter.IMPORT_WALLET, {
           accountName: this.state.walletInfo.accountName,
         });
       },
@@ -236,57 +238,26 @@ class SwiperBanner extends React.Component {
     const {indexAds} = this.props;
     if (indexAds && indexAds.length !== 0) {
       return (
-        <View style={styles.swiperWrap}>
-          <Swiper
-            key={indexAds.length}
-            style={styles.swiper} //样式
-            height={height} //组件高度
-            loop={true} //如果设置为false，那么滑动到最后一张时，再次滑动将不会滑到第一张图片。
-            autoplay={true} //自动轮播
-            autoplayTimeout={4} //每隔4秒切换
-            horizontal={true} //水平方向，为false可设置为竖直方向
-            paginationStyle={{
-              bottom: 10,
-              flexDirection: 'row',
-              justifyContent: 'flex-end',
-              paddingRight: 40,
-            }} //小圆点的位置：距离底部10px
-            showsButtons={false} //为false时不显示控制按钮
-            showsPagination={true} //为false不显示下方圆点
-            dot={
-              <View
-                style={{
-                  //未选中的圆点样式
-                  backgroundColor: 'rgba(255,255,255,.3)',
-                  width: 6,
-                  height: 6,
-                  borderRadius: 3,
-                  marginLeft: 3,
-                  marginRight: 3,
-                }}
-              />
-            }
-            activeDot={
-              <View
-                style={{
-                  //选中的圆点样式
-                  backgroundColor: '#fff',
-                  width: 6,
-                  height: 6,
-                  borderRadius: 3,
-                  marginLeft: 3,
-                  marginRight: 3,
-                }}
-              />
-            }>
-            {this.renderBanner()}
-          </Swiper>
-          <ComfirmView
-            visible={this.state.comfirmVisible}
-            item={this.state.comfirmItem}
-            submitComfirm={this.submitComfirmView}
-            cancelComfirm={() => this.setState({comfirmVisible: false})}
-          />
+        <View style={styles.container}>
+          <SwiperFlatList
+            autoplay
+            autoplayDelay={2}
+            autoplayLoop
+            index={2}
+            showPagination>
+            <View style={[styles.child, {backgroundColor: 'tomato'}]}>
+              <Text style={styles.text}>1</Text>
+            </View>
+            <View style={[styles.child, {backgroundColor: 'thistle'}]}>
+              <Text style={styles.text}>2</Text>
+            </View>
+            <View style={[styles.child, {backgroundColor: 'skyblue'}]}>
+              <Text style={styles.text}>3</Text>
+            </View>
+            <View style={[styles.child, {backgroundColor: 'teal'}]}>
+              <Text style={styles.text}>4</Text>
+            </View>
+          </SwiperFlatList>
         </View>
       );
     } else {
@@ -296,6 +267,18 @@ class SwiperBanner extends React.Component {
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: 'white',
+  },
+  child: {
+    height: height * 0.5,
+    width: '90%',
+    justifyContent: 'center',
+  },
+  text: {
+    textAlign: 'center',
+  },
   swiperWrap: {
     width: Dimensions.width,
     height: height,
@@ -320,13 +303,4 @@ const styles = StyleSheet.create({
   },
 });
 
-// const mapStateToProps = state => {
-//   return {
-//     userInfo: state.auth.userInfo,
-//     loggedIn: state.auth.loggedIn,
-//     registered: state.auth.registered,
-//   };
-// };
-// export default connect(mapStateToProps)(SwiperBanner);
-
-export default SwiperBanner;
+export default DAppAdsBanner;

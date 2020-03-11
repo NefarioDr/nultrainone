@@ -6,7 +6,7 @@ const ShadowView = () => (
   <View style={styles.boxShadow}>
     <Image
       style={{width: '100%', height: 10}}
-      source={require('../../img/shadow1.png')}
+      source={require('../../../resources/img/shadow1.png')}
     />
   </View>
 );

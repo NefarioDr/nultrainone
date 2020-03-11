@@ -12,10 +12,11 @@ import {
 import I18n from '../../../resources/languages/I18n';
 import Button from '../components/Button';
 import NavigationUtil from '../../commons/NavigationUtil';
+import { HSRouter } from '../../homescreen/HSRouter';
 
 const closeIcon = require('../../../resources/img/closeIconB.png');
 
-const AddWallet = ({visible, closeModel, closeWallet, goBack, props}) => {
+const AddWallet = ({ visible, closeModel, closeWallet, goBack, props }) => {
   handleCreatClick = () => {
     closeModel();
     if (closeWallet) {
@@ -24,11 +25,11 @@ const AddWallet = ({visible, closeModel, closeWallet, goBack, props}) => {
       }, 50);
     }
     setTimeout(() => {
-      const {loggedIn} = props;
+      const { loggedIn } = props;
       if (loggedIn) {
-        NavigationUtil.go(props.navigation, 'CreateWallet', {goBack});
+        NavigationUtil.go(props.navigation, HSRouter.CREATE_WALLET, { goBack });
       } else {
-        NavigationUtil.reset(props.navigation, 'Landing');
+        NavigationUtil.reset(props.navigation, HSRouter.LOGIN_SCREEN);
       }
     }, 1000);
   };
@@ -40,11 +41,11 @@ const AddWallet = ({visible, closeModel, closeWallet, goBack, props}) => {
       }, 0);
     }
     setTimeout(() => {
-      const {loggedIn} = props;
+      const { loggedIn } = props;
       if (loggedIn) {
-        NavigationUtil.go(props.navigation, 'ImportWallet', {goBack});
+        NavigationUtil.go(props.navigation, HSRouter.IMPORT_WALLET, { goBack });
       } else {
-        NavigationUtil.reset(props.navigation, 'Landing');
+        NavigationUtil.reset(props.navigation, HSRouter.LOGIN_SCREEN);
       }
     }, 1000);
   };
@@ -85,7 +86,7 @@ const AddWallet = ({visible, closeModel, closeWallet, goBack, props}) => {
             style={styles.closIcon}
             activeOpacity={0.8}
             onPress={() => closeModel()}>
-            <Image style={[{width: 17, height: 17}]} source={closeIcon} />
+            <Image style={[{ width: 17, height: 17 }]} source={closeIcon} />
           </TouchableOpacity>
         </View>
       </View>
@@ -94,7 +95,7 @@ const AddWallet = ({visible, closeModel, closeWallet, goBack, props}) => {
 };
 
 AddWallet.defaultProps = {
-  selectWallet: () => {},
+  selectWallet: () => { },
   selectionWallet: 'TestNet',
 };
 
@@ -132,7 +133,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     backgroundColor: '#FFFFFF',
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: -2},
+    shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.15,
     elevation: 8,
   },

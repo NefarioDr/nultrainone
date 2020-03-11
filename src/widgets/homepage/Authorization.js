@@ -69,7 +69,7 @@ export default class Authorization extends React.Component {
     };
   }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.props.navigation.setParams({
       showManage: () => this.setState({showManagement: true}),
     });
@@ -227,7 +227,7 @@ export default class Authorization extends React.Component {
         <View style={{flex: 1, padding: 10}}>
           <ActivityIndicator size="small" />
         </View>
-      );
+      )
     );
   };
 

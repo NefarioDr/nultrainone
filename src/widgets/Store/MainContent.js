@@ -7,7 +7,7 @@ import LoadingDecView from '../components/LoadingDecView';
 import * as storeService from '../../services/store';
 import CacheUtil from '../commons/CacheUtil';
 
-class MainContent extends React.Component {
+class UltrainNews extends React.Component {
   constructor(props) {
     super(props);
 
@@ -26,7 +26,7 @@ class MainContent extends React.Component {
     };
   }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     DeviceEventEmitter.removeAllListeners('refreshMainList');
   }
 
@@ -177,4 +177,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default MainContent;
+export default UltrainNews;

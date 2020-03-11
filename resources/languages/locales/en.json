@@ -470,5 +470,8 @@
     "topActivity": "Top Events",
     "activity": "Events",
     "store": "Store"
+  },
+  "global": {
+    "error": "Error"
   }
 }

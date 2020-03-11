@@ -16,8 +16,9 @@ import {getWalletInfo} from '../../commons/WalletUtil';
 import NavigationUtil from '../../commons/NavigationUtil';
 
 import CacheUtils from '../../commons/CacheUtil';
+import { Events } from '../../services/events';
 
-class Column extends React.Component {
+class Shortcuts extends React.Component {
   constructor(props) {
     super(props);
     this.onRefresh = this._onRefresh.bind(this);
@@ -35,7 +36,7 @@ class Column extends React.Component {
     };
   }
 
-  async componentWillMount() {
+  async UNSAFE_componentWillMount() {
     // 或许当前网络链信息
     await CacheUtils.getItem('selectNetwork', (err, ret) => {
       if (err) {
@@ -58,13 +59,13 @@ class Column extends React.Component {
       onRef(this);
     }
     // 监听网络切换
-    DeviceEventEmitter.addListener('selectNetwork', network => {
+    DeviceEventEmitter.addListener(Events.SELECT_A_CHAIN, network => {
       this.setState({
         network,
       });
     });
     // 监听钱包切换
-    DeviceEventEmitter.addListener('changeWalletStatus', () => {
+    DeviceEventEmitter.addListener(Events.WALLET_STATUS_CHANGED, () => {
       this.getWalletInfo();
     });
     this.getDataSource();
@@ -249,12 +250,5 @@ const styles = StyleSheet.create({
     marginBottom: 1,
   },
 });
-// const mapStateToProps = state => {
-//   return {
-//     userInfo: state.auth.userInfo,
-//     loggedIn: state.auth.loggedIn,
-//     registered: state.auth.registered,
-//   };
-// };
-// export default connect(mapStateToProps)(Column);
-export default Column;
+
+export default Shortcuts;

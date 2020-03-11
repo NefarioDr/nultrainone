@@ -20,6 +20,7 @@ import * as authService from '../../services/auth';
 import * as Images from '../../../resources/img/Images';
 import Share from '../components/Share';
 import ShadowView from '../ItemDetail/ShadowView';
+import { Events } from '../../services/events';
 let canGoBack = false;
 
 const patchPostMessageFunction = function() {
@@ -114,7 +115,7 @@ class WebViewPage extends React.Component {
               this.webview.postMessage(d === true ? -1 : 1);
 
               this.props.navigation.setParams({heartStatu: !d});
-              DeviceEventEmitter.emit('notReadCount');
+              DeviceEventEmitter.emit(Events.NOT_READ_COUNT);
             }
           })
           .catch(e => {
@@ -137,7 +138,7 @@ class WebViewPage extends React.Component {
       DeviceEventEmitter.emit('refreshLikeArticleList');
       // NavigationUtil.reset(this.props.navigation, 'MyCollect');
     }
-    if (callbackRoute === 'MainContent') {
+    if (callbackRoute === 'UltrainNews') {
       DeviceEventEmitter.emit('refreshMainList');
       // NavigationUtil.reset(this.props.navigation, 'Home');
     }
@@ -236,7 +237,7 @@ class WebViewPage extends React.Component {
     return false;
   };
 
-  componentWillUnmount() {
+  UNSAFE_componentWillUnmount() {
     BackHandler.removeEventListener('hardwareBackPress', this.goBack);
   }
 
